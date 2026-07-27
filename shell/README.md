@@ -1,5 +1,3 @@
-help
-
 # Shell Educativo para la Exploración de Llamadas al Sistema (Linux)
 
 Este proyecto es una herramienta diseñada en **C** para estudiantes de Sistemas Operativos. Consiste en una interfaz de línea de comandos (CLI) interactiva que clasifica y explica de forma visual las **llamadas al sistema (system calls)** básicas que realiza el kernel de Linux.
