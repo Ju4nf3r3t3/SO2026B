@@ -4,27 +4,42 @@
 #include <unistd.h>
 #include <getopt.h>
 
-/* Códigos de Color ANSI para mejorar la estética en la terminal */
-#define COLOR_RESET   "\033[0m"
-#define COLOR_TITLE   "\033[1;97m"   /* Blanco brillante */
-#define COLOR_PARAM   "\033[1;36m"   /* Cian: para parámetros leídos */
-#define COLOR_VAL     "\033[1;32m"   /* Verde: para valores de las variables */
-#define COLOR_ERROR   "\033[1;31m"   /* Rojo: para errores en formato */
-#define COLOR_INFO    "\033[0;90m"   /* Gris oscuro: para trazas y depuración */
-#define COLOR_BANNER  "\033[1;35m"   /* Magenta: cabeceras de modo */
+/* 
+ * ====================================================================================
+ * Códigos de Color ANSI para mejorar la estética en la terminal (Aesthetic Terminal)
+ * ====================================================================================
+ * Permiten dar un formato de salida premium en la terminal de Linux.
+ * Cada macro representa una secuencia de escape que cambia el color de impresión.
+ */
+#define COLOR_RESET   "\033[0m"      /* Restablece todos los colores a la configuración de la terminal */
+#define COLOR_TITLE   "\033[1;97m"   /* Blanco brillante en negrita: Para encabezados importantes */
+#define COLOR_PARAM   "\033[1;36m"   /* Cian brillante: Para nombres de banderas (ej: -n, --port) */
+#define COLOR_VAL     "\033[1;32m"   /* Verde brillante: Para valores asignados a las variables */
+#define COLOR_ERROR   "\033[1;31m"   /* Rojo brillante: Para indicar errores de formato o valores ausentes */
+#define COLOR_INFO    "\033[0;90m"   /* Gris oscuro: Para trazas educativas y depuración del sistema */
+#define COLOR_BANNER  "\033[1;35m"   /* Magenta brillante: Para separar los modos de ejecución del parseador */
 
-/* Estructura para almacenar los datos parseados de la línea de comandos */
+/**
+ * ====================================================================================
+ * ESTRUCTURA DE CONFIGURACIÓN DEL SISTEMA
+ * ====================================================================================
+ * Almacena los valores leídos desde la línea de comandos. 
+ * Se pasa por referencia a los diferentes parseadores para poblar sus campos.
+ */
 typedef struct {
-    char *name;
-    int port;
-    int verbose;
+    char *name;   /* Nombre de usuario leido de la bandera (string) */
+    int port;     /* Puerto de red (número entero) */
+    int verbose;  /* Bandera lógica (0 = Falso, 1 = Verdadero) para activar depuración */
 } CliConfig;
 
-/* Imprime la sintaxis general del programa */
+/**
+ * Muestra las instrucciones de uso en caso de error o cuando el usuario solicita ayuda.
+ * Explica detalladamente los tres modos didácticos implementados.
+ */
 void print_usage(const char *prog_name) {
     printf(COLOR_TITLE "Uso del programa:\n" COLOR_RESET);
     printf("  %s <modo> [banderas...]\n\n", prog_name);
-    printf(COLOR_TITLE "Modos disponibles:\n" COLOR_RESET);
+    printf(COLOR_TITLE "Modos disponibles (primer argumento):\n" COLOR_RESET);
     printf("  " COLOR_PARAM "manual" COLOR_RESET "      - Parseo manual directo iterando sobre el arreglo argv\n");
     printf("  " COLOR_PARAM "getopt" COLOR_RESET "      - Parseo estándar POSIX usando getopt()\n");
     printf("  " COLOR_PARAM "getopt_long" COLOR_RESET " - Parseo estándar GNU usando getopt_long()\n\n");
@@ -35,17 +50,26 @@ void print_usage(const char *prog_name) {
     printf("  " COLOR_PARAM "-h, --help" COLOR_RESET "          Muestra esta ayuda de uso\n");
 }
 
-/* Imprime el estado del arreglo argv recibido del sistema operativo */
+/**
+ * Muestra de manera didáctica cómo se almacena el vector 'argv' en el stack
+ * de la memoria virtual del proceso al iniciarse.
+ * Muestra el número de argumentos (argc), el contenido de cada string de argv
+ * y su dirección física en el stack.
+ */
 void print_argv_structure(int argc, char **argv) {
-    printf(COLOR_INFO "[Trazado] Estructura recibida del stack (argv):\n" COLOR_RESET);
-    printf(COLOR_INFO "  argc = %d\n" COLOR_RESET, argc);
+    printf(COLOR_INFO "[Trazado] Estructura recibida en el stack de memoria (argv):\n" COLOR_RESET);
+    printf(COLOR_INFO "  argc = %d (número de argumentos pasados)\n" COLOR_RESET, argc);
     for (int i = 0; i < argc; i++) {
-        printf(COLOR_INFO "  argv[%d] = \"%s\" (Dirección: %p)\n" COLOR_RESET, i, argv[i], (void*)argv[i]);
+        /* Imprime el índice, el valor textual y la dirección de memoria virtual apuntada */
+        printf(COLOR_INFO "  argv[%d] = \"%s\" (Ubicación: %p)\n" COLOR_RESET, i, argv[i], (void*)argv[i]);
     }
     printf("\n");
 }
 
-/* Muestra el resultado final de la configuración después del parseo */
+/**
+ * Muestra los resultados almacenados en la estructura CliConfig para validar
+ * que el parseo de banderas haya sido exitoso.
+ */
 void print_config_result(const CliConfig *config) {
     printf(COLOR_TITLE "========================================\n" COLOR_RESET);
     printf(COLOR_TITLE "    Configuración Final Obtenida\n" COLOR_RESET);
@@ -60,45 +84,56 @@ void print_config_result(const CliConfig *config) {
  * ====================================================================================
  * ENFOQUE 1: PARSEO MANUAL DE ARGUMENTOS
  * ====================================================================================
- * Se recorre argv paso a paso con un ciclo for o while. 
- * Compara cadenas usando strcmp().
+ * Lógica:
+ * Recorremos manualmente el arreglo argv desde i = 2 usando un bucle.
+ * Comparamos cadenas de forma directa usando strcmp().
+ * Si una bandera espera un argumento (como -n o -p), verificamos que no cause un
+ * acceso fuera de los límites de memoria validando (i + 1 < argc) y avanzamos el
+ * puntero del bucle (i++) para consumir el argumento.
  */
 void parse_manual(int argc, char **argv, CliConfig *config) {
     printf(COLOR_BANNER "--- Iniciando Parseo Manual (Iteración Directa sobre argv) ---\n" COLOR_RESET);
-    
-    /* Empezamos en i = 2 porque argv[0] es el ejecutable y argv[1] es el modo "manual" */
+    printf(COLOR_INFO "Recorriendo argv desde el índice 2 (saltando programa y modo)...\n" COLOR_RESET);
+
     for (int i = 2; i < argc; i++) {
         printf(COLOR_INFO "[manual-step] Evaluando argv[%d] = \"%s\"\n" COLOR_RESET, i, argv[i]);
 
+        /* Caso 1: Bandera de Nombre (-n o --name) */
         if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--name") == 0) {
-            /* Validar que el argumento de la bandera no esté vacío */
+            /* IMPORTANTE: Evitar lectura fuera de límites.
+             * Si el usuario escribe '-n' al final del comando sin un valor posterior, i+1 sería igual a argc. */
             if (i + 1 < argc) {
-                config->name = argv[i + 1];
+                config->name = argv[i + 1]; /* Asigna el puntero directamente del arreglo argv */
                 printf(COLOR_INFO "  -> Detectado: Name = \"%s\"\n" COLOR_RESET, config->name);
-                i++; /* Avanzar índice adicional ya que consumimos el valor */
+                i++; /* Incrementamos el iterador para saltar el argumento de valor ya consumido */
             } else {
                 fprintf(stderr, COLOR_ERROR "Error: La bandera '%s' requiere un argumento de texto.\n" COLOR_RESET, argv[i]);
                 exit(1);
             }
         } 
+        /* Caso 2: Bandera de Puerto (-p o --port) */
         else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--port") == 0) {
             if (i + 1 < argc) {
+                /* atoi convierte la cadena de caracteres de texto en un número entero */
                 config->port = atoi(argv[i + 1]);
                 printf(COLOR_INFO "  -> Detectado: Port = %d\n" COLOR_RESET, config->port);
-                i++;
+                i++; /* Saltar el valor consumido */
             } else {
                 fprintf(stderr, COLOR_ERROR "Error: La bandera '%s' requiere un argumento numérico.\n" COLOR_RESET, argv[i]);
                 exit(1);
             }
         } 
+        /* Caso 3: Bandera booleana de depuración (-v o --verbose) */
         else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
-            config->verbose = 1;
+            config->verbose = 1; /* Asignar 1 (Verdadero) */
             printf(COLOR_INFO "  -> Detectado: Modo Verbose activado\n" COLOR_RESET);
         } 
+        /* Caso 4: Solicitud de ayuda (-h o --help) */
         else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             exit(0);
         } 
+        /* Caso 5: Argumento no reconocido (o bandera inválida) */
         else {
             fprintf(stderr, COLOR_ERROR "Advertencia: Bandera '%s' no reconocida. Ignorada.\n" COLOR_RESET, argv[i]);
         }
@@ -109,38 +144,43 @@ void parse_manual(int argc, char **argv, CliConfig *config) {
  * ====================================================================================
  * ENFOQUE 2: POSIX getopt()
  * ====================================================================================
- * getopt(3) lee consecutivamente las opciones y sus argumentos opcionales.
- * Utiliza variables globales:
- * - optarg: Puntero al argumento de la opción actual (si requiere uno).
- * - optind: Índice del siguiente argumento a procesar.
- * - optopt: Almacena el carácter no reconocido en caso de error.
- * - opterr: Si es 0, getopt no imprimirá mensajes de error por defecto a stderr.
+ * Lógica:
+ * getopt(3) procesa secuencialmente argumentos con guión (-).
+ * Modifica variables del sistema para llevar la contabilidad:
+ * - optind: Índice en argv del siguiente elemento a analizar.
+ * - optarg: Guarda el puntero al valor asociado a una bandera (si corresponde).
+ * - optopt: Guarda la bandera inválida si getopt() falla.
+ * 
+ * Cadena de formato de getopt:
+ * "n:p:vh"
+ * - Las letras simples ('v', 'h') representan opciones booleanas simples.
+ * - Las letras seguidas por dos puntos (':') indican que la bandera requiere obligatoriamente
+ *   un argumento de valor adjunto (ej: 'n:', 'p:').
  */
 void parse_getopt(int argc, char **argv, CliConfig *config) {
     printf(COLOR_BANNER "--- Iniciando Parseo POSIX usando getopt() ---\n" COLOR_RESET);
 
     int opt;
-    /* La cadena "n:p:vh" indica:
-     * - 'n:' -> opción -n requiere argumento.
-     * - 'p:' -> opción -p requiere argumento.
-     * - 'v'  -> opción -v no requiere argumento.
-     * - 'h'  -> opción -h no requiere argumento.
+
+    /* REINICIO DE getopt:
+     * Por defecto, getopt empieza a leer en optind = 1. Como argv[1] es nuestro "modo"
+     * de parseo ("getopt"), debemos decirle a la biblioteca que empiece a parsear en optind = 2.
      */
-    
-    /* Reiniciamos el índice de getopt para saltar el modo (argv[1]) */
     optind = 2;
 
+    /* getopt() retorna el caracter de la bandera encontrada, o -1 al finalizar */
     while ((opt = getopt(argc, argv, "n:p:vh")) != -1) {
-        printf(COLOR_INFO "[getopt-step] Encontrado carácter de opción '%c' (optind=%d)\n" COLOR_RESET, opt, optind);
+        printf(COLOR_INFO "[getopt-step] Encontrado carácter de opción '-%c' (optind=%d)\n" COLOR_RESET, opt, optind);
 
         switch (opt) {
             case 'n':
+                /* optarg apunta automáticamente al valor posterior de la bandera */
                 config->name = optarg;
                 printf(COLOR_INFO "  -> optarg = \"%s\"\n" COLOR_RESET, optarg);
                 break;
             case 'p':
                 config->port = atoi(optarg);
-                printf(COLOR_INFO "  -> optarg = \"%s\" (entero: %d)\n" COLOR_RESET, optarg, config->port);
+                printf(COLOR_INFO "  -> optarg = \"%s\" (entero convertido: %d)\n" COLOR_RESET, optarg, config->port);
                 break;
             case 'v':
                 config->verbose = 1;
@@ -150,7 +190,9 @@ void parse_getopt(int argc, char **argv, CliConfig *config) {
                 print_usage(argv[0]);
                 exit(0);
             case '?':
-                /* getopt ya imprime automáticamente el mensaje de error por defecto */
+                /* Si getopt() encuentra una opción no registrada o si le falta un valor,
+                 * retorna '?' e imprime un error predeterminado a stderr.
+                 * El caracter fallido se almacena en la variable global 'optopt'. */
                 fprintf(stderr, COLOR_ERROR "Error: Formato inválido o falta argumento para opción '-%c'\n" COLOR_RESET, optopt);
                 exit(1);
             default:
@@ -163,35 +205,39 @@ void parse_getopt(int argc, char **argv, CliConfig *config) {
  * ====================================================================================
  * ENFOQUE 3: GNU getopt_long()
  * ====================================================================================
- * Permite parsear opciones largas como --name o --port, facilitando la legibilidad.
+ * Lógica:
+ * Permite procesar argumentos largos con doble guión (--name, --port).
+ * Requiere un arreglo de estructuras `struct option` que definen las opciones válidas:
  * 
- * Requiere una estructura struct option con los siguientes campos:
- * - name: Nombre largo (ej. "name").
- * - has_arg: Indica si requiere valor (required_argument, no_argument, optional_argument).
- * - flag: Dirección de un entero que se modificará con el valor de 'val'. Si es NULL,
- *         getopt_long retorna el carácter en 'val'.
- * - val: Carácter equivalente de opción corta (ej. 'n').
+ * struct option {
+ *   const char *name;    // Nombre de la opción larga sin guiones (ej. "port")
+ *   int         has_arg; // no_argument (0), required_argument (1), optional_argument (2)
+ *   int        *flag;    // Si es NULL, getopt_long retorna el carácter de 'val'
+ *   int         val;     // El carácter equivalente de opción corta (ej: 'p')
+ * };
  */
 void parse_getopt_long(int argc, char **argv, CliConfig *config) {
     printf(COLOR_BANNER "--- Iniciando Parseo GNU usando getopt_long() ---\n" COLOR_RESET);
 
     int opt;
-    int option_index = 0;
+    int option_index = 0; /* Almacena el índice de la opción larga encontrada en el arreglo */
 
-    /* Configuración de las opciones largas */
+    /* Definición de la tabla de mapeo de opciones largas a sus equivalencias cortas */
     static struct option long_options[] = {
-        {"name",    required_argument, NULL, 'n'},
-        {"port",    required_argument, NULL, 'p'},
-        {"verbose", no_argument,       NULL, 'v'},
-        {"help",    no_argument,       NULL, 'h'},
-        {NULL,      0,                 NULL,  0 } /* Sentinela de cierre */
+        {"name",    required_argument, NULL, 'n'}, /* --name equivale a -n */
+        {"port",    required_argument, NULL, 'p'}, /* --port equivale a -p */
+        {"verbose", no_argument,       NULL, 'v'}, /* --verbose equivale a -v */
+        {"help",    no_argument,       NULL, 'h'}, /* --help equivale a -h */
+        {NULL,      0,                 NULL,  0 }  /* Sentinela obligatorio de cierre con valores nulos */
     };
 
-    /* Reiniciamos el índice de getopt para saltar el modo (argv[1]) */
+    /* Reiniciamos el cursor al índice 2 para evitar analizar el comando de modo (argv[1]) */
     optind = 2;
 
+    /* getopt_long lee tanto las opciones cortas de la cadena format "n:p:vh"
+     * como las opciones largas definidas en el arreglo 'long_options' */
     while ((opt = getopt_long(argc, argv, "n:p:vh", long_options, &option_index)) != -1) {
-        printf(COLOR_INFO "[getopt-long-step] Opción: '%c' (Larga: --%s, optind=%d)\n" COLOR_RESET, 
+        printf(COLOR_INFO "[getopt-long-step] Opción corta: '%c' (Larga: --%s, optind=%d)\n" COLOR_RESET, 
                opt, long_options[option_index].name, optind);
 
         switch (opt) {
@@ -211,6 +257,7 @@ void parse_getopt_long(int argc, char **argv, CliConfig *config) {
                 print_usage(argv[0]);
                 exit(0);
             case '?':
+                /* Error ya reportado a stderr por la biblioteca automáticamente */
                 exit(1);
             default:
                 break;
@@ -219,24 +266,25 @@ void parse_getopt_long(int argc, char **argv, CliConfig *config) {
 }
 
 int main(int argc, char **argv) {
-    /* Valores iniciales de configuración por defecto */
+    /* Configuración por defecto antes de leer la línea de comandos */
     CliConfig config = {
         .name = NULL,
-        .port = 80,
-        .verbose = 0
+        .port = 80,      /* Puerto predeterminado HTTP */
+        .verbose = 0     /* Depuración desactivada por defecto */
     };
 
-    /* Si no se pasan argumentos, mostramos la ayuda general */
+    /* Validar entrada mínima: debe tener al menos el modo a probar (manual, getopt...) */
     if (argc < 2) {
         print_usage(argv[0]);
         return 1;
     }
 
-    /* Mostrar de forma pedagógica el stack argv completo */
+    /* Mostrar visualmente el arreglo argv de la pila */
     print_argv_structure(argc, argv);
 
-    /* Enrutar la ejecución al parseador correspondiente según el primer argumento */
+    /* Capturar el primer argumento que define el modo del analizador */
     const char *mode = argv[1];
+
     if (strcmp(mode, "manual") == 0) {
         parse_manual(argc, argv, &config);
     } 
@@ -256,14 +304,18 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    /* Imprimir el resultado de la configuración capturada */
+    /* Mostrar el resultado final parseado en la estructura de datos */
     print_config_result(&config);
 
-    /* Si existen argumentos posicionales adicionales sobrantes (no asociados a banderas) */
+    /* DETECTAR ARGUMENTOS POSICIONALES ADICIONALES (Non-option arguments):
+     * getopt y getopt_long reordenan argv desplazando los argumentos libres
+     * (por ejemplo, nombres de archivos a procesar) al final del vector.
+     * Estos quedan accesibles desde el índice optind hasta argc - 1.
+     */
     if (optind < argc && strcmp(mode, "manual") != 0) {
-        printf(COLOR_TITLE "Argumentos posicionales adicionales (sobrantes):\n" COLOR_RESET);
+        printf(COLOR_TITLE "Argumentos posicionales adicionales detectados (optind = %d):\n" COLOR_RESET, optind);
         for (int i = optind; i < argc; i++) {
-            printf("  argv[%d] = \"%s\"\n", i, argv[i]);
+            printf("  argv[%d] = \"%s\" (posicional)\n", i, argv[i]);
         }
         printf("\n");
     }
