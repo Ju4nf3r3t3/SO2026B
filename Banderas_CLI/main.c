@@ -11,7 +11,7 @@
  * Permiten dar un formato de salida premium en la terminal de Linux.
  * Cada macro representa una secuencia de escape que cambia el color de impresión.
  */
-#define COLOR_RESET   "\033[0m"      /* Restablece todos los colores a la configuración de la terminal */
+#define COLOR_RESET   "\033[0m"      /* Restablece a todos los colores a la configuración de la terminal */
 #define COLOR_TITLE   "\033[1;97m"   /* Blanco brillante en negrita: Para encabezados importantes */
 #define COLOR_PARAM   "\033[1;36m"   /* Cian brillante: Para nombres de banderas (ej: -n, --port) */
 #define COLOR_VAL     "\033[1;32m"   /* Verde brillante: Para valores asignados a las variables */
