@@ -101,3 +101,36 @@ int cmd_fecha(int argc, char **argv) {
     printf(COLOR_RESULT "Fecha actual: %s\n" COLOR_RESET, buffer);
     return 0;
 }
+
+
+//==============================
+/**
+ * ====================================================================================
+ * COMANDO: despedir
+ * ====================================================================================
+ * Saluda al usuario autenticado en el sistema.
+ * 
+ * Syscalls explicadas:
+ * 1. getuid(2): Obtiene el Identificador de Usuario (UID) real del proceso.
+ *    - Retorna el entero que representa la cuenta (e.g. 0 para root, 1000 para usuarios).
+ * 
+ * Funciones de biblioteca explicadas:
+ * - getpwuid(3): Lee la base de datos de usuarios (usualmente el archivo del sistema `/etc/passwd`)
+ *   para traducir el UID numérico a una estructura struct passwd con el nombre de usuario de login.
+ */
+int cmd_despedir(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+
+    /* 1. LLAMADA AL SISTEMA: getuid */
+    LOG_SYSCALL("getuid", "");
+    uid_t uid = getuid();
+    LOG_SYSCALL_RESULT(uid); /* Devuelve el ID numérico del usuario actual */
+
+    /* Consultar base de datos del sistema /etc/passwd */
+    struct passwd *pw = getpwuid(uid);
+    const char *username = pw ? pw->pw_name : "usuario desconocido";
+
+    printf(COLOR_RESULT "¡Adios, %s! Qué Dios de bendiga, Camina por la sombra.\n" COLOR_RESET, username);
+    return 0;
+}

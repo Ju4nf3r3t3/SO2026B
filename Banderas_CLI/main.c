@@ -57,11 +57,11 @@ void print_usage(const char *prog_name) {
  * y su dirección física en el stack.
  */
 void print_argv_structure(int argc, char **argv) {
-    printf(COLOR_INFO "[Trazado] Estructura recibida en el stack de memoria (argv):\n" COLOR_RESET);
+    printf(COLOR_VAL "[Trazado] Estructura recibida en el stack de memoria (argv):\n" COLOR_RESET);
     printf(COLOR_INFO "  argc = %d (número de argumentos pasados)\n" COLOR_RESET, argc);
     for (int i = 0; i < argc; i++) {
         /* Imprime el índice, el valor textual y la dirección de memoria virtual apuntada */
-        printf(COLOR_INFO "  argv[%d] = \"%s\" (Ubicación: %p)\n" COLOR_RESET, i, argv[i], (void*)argv[i]);
+        printf(COLOR_VAL"  argv[%d] = \"%s\" (Ubicación: %p)\n" COLOR_RESET, i, argv[i], (void*)argv[i]);
     }
     printf("\n");
 }
@@ -79,7 +79,7 @@ void print_config_result(const CliConfig *config) {
     printf("  Modo Detallado:  " COLOR_VAL "%s" COLOR_RESET "\n", config->verbose ? "ACTIVO (True)" : "INACTIVO (False)");
     printf(COLOR_TITLE "========================================\n\n" COLOR_RESET);
 }
-
+            
 /**
  * ====================================================================================
  * ENFOQUE 1: PARSEO MANUAL DE ARGUMENTOS

@@ -106,6 +106,13 @@ Command commands[] = {
         cmd_saludar
     },
     {
+        "despedir", "utilidades",
+        "despedir",
+        "Muestra un mensaje de despedida personalizado para el usuario actual.",
+        "getuid(2)",
+        cmd_despedir
+    },
+    {
         "hora", "utilidades",
         "hora",
         "Muestra la hora actual del sistema.",
@@ -198,7 +205,7 @@ void print_help(const char *arg) {
         printf("  " COLOR_CATEGORY "datos" COLOR_RESET "      - Comandos de archivos y datos (open, read, write, stat, ...)\n");
         printf("  " COLOR_CATEGORY "memoria" COLOR_RESET "    - Comandos de control de heap y memoria (sbrk, mmap, ...)\n");
         printf("  " COLOR_CATEGORY "monitoreo" COLOR_RESET "  - Comandos de procesos, señales y recursos (fork, exec, kill, getrusage)\n");
-        printf("  " COLOR_CATEGORY "utilidades" COLOR_RESET " - Comandos útiles del sistema (saludar, hora, fecha)\n\n");
+        printf("  " COLOR_CATEGORY "utilidades" COLOR_RESET " - Comandos útiles del sistema (saludar, hora, fecha, despedir)\n\n");
         printf("Uso general:\n");
         printf("  " COLOR_PROMPT "help <categoria>" COLOR_RESET "  - Muestra comandos específicos de una categoría.\n");
         printf("  " COLOR_PROMPT "help <comando>" COLOR_RESET "    - Explica el uso y las syscalls de un comando específico.\n");
@@ -250,14 +257,14 @@ int main() {
 
     /* Banner de bienvenida premium */
     printf(COLOR_TITLE "========================================================\n" COLOR_RESET);
-    printf(COLOR_TITLE "    Shell Educativo de Llamadas al Sistema de Linux\n" COLOR_RESET);
-    printf(COLOR_INFO "    Asignatura: SO2026B (Sistemas Operativos)\n" COLOR_RESET);
+    printf(COLOR_TITLE "   Shell Educativo (Llamadas al Sistema de Linux) (EAFITOS)\n" COLOR_RESET);
+    printf(COLOR_INFO "    Asignatura: SO2026B0 (Sistemas Operativos)\n" COLOR_RESET);
     printf(COLOR_INFO "    Escribe 'help' para iniciar. Desarrollado en C.\n" COLOR_RESET);
     printf(COLOR_TITLE "========================================================\n\n" COLOR_RESET);
 
     while (1) {
         /* Imprimir prompt cian interactivo */
-        printf(COLOR_PROMPT "sys-shell> " COLOR_RESET);
+        printf(COLOR_PROMPT "eafitOS> " COLOR_RESET);
         fflush(stdout); /* Asegurar que se muestre en pantalla antes de bloquear en fgets */
 
         /* Leer línea de entrada. Retorna NULL en EOF (Ctrl+D) */

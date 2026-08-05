@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=gnu99 -g -D_GNU_SOURCE
-TARGET = cli_parser
+TARGET = eafitOS
 SRCS = main.c
 OBJS = $(SRCS:.c=.o)
 
