@@ -7,15 +7,15 @@ En este documento explicaremos cómo utilizar las llamadas al sistema POSIX en C
 ### Comparativa: System Calls vs Librería Estándar de C
 A continuación, una tabla que compara las llamadas al sistema (Syscalls) que hemos usado, con sus contrapartes en la librería estándar de C (`stdio.h`), las cuales internamente (en sistemas UNIX/Linux) terminan invocando a estas Syscalls.
 
-| Operación | System Call (Kernel / POSIX) | Función de Librería Estándar de C | Diferencia Principal |
-| :--- | :--- | :--- | :--- |
-| **Abrir / Crear** | `open()` | `fopen()` | `open` devuelve un entero (`fd`), `fopen` devuelve un puntero (`FILE *`) que incluye un buffer gestionado en memoria de usuario. |
-| **Cerrar** | `close()` | `fclose()` | `fclose` limpia y vacía el buffer de usuario (flush) antes de invocar internamente a `close`. |
-| **Leer** | `read()` | `fread()`, `fgets()`, `fscanf()` | `read` extrae bytes crudos directo del kernel; las de librería permiten parsear texto o tipos de datos. |
-| **Escribir** | `write()` | `fwrite()`, `fputs()`, `fprintf()` | `write` envía bloques de bytes crudos; `fprintf` permite formatear cadenas dinámicamente. |
-| **Borrar Archivo** | `unlink()` | `remove()` | `remove()` es el estándar de C, el cual en sistemas POSIX hace una llamada directa a `unlink()`. |
-| **Metadatos / Info** | `stat()` | *No hay equivalente estándar* | El estándar de C básico no lee inodos; se requiere usar la API POSIX. |
-| **Directorios** | `mkdir()`, `rmdir()` | *No hay equivalente estándar* | La librería estándar de C pura no gestiona carpetas, se delega al estándar POSIX del OS. |
+| Operación | System Call (Kernel / POSIX) | Función de Librería Estándar de C | Comando de Terminal (CLI) | Diferencia Principal |
+| :--- | :--- | :--- | :--- | :--- |
+| **Abrir / Crear** | `open()` | `fopen()` | `touch`, `cat >` | `open` devuelve un entero (`fd`), `fopen` devuelve un puntero (`FILE *`) que incluye un buffer gestionado en memoria de usuario. |
+| **Cerrar** | `close()` | `fclose()` | *(Implicito al terminar comando)* | `fclose` limpia y vacía el buffer de usuario (flush) antes de invocar internamente a `close`. |
+| **Leer** | `read()` | `fread()`, `fgets()`, `fscanf()` | `cat`, `less`, `more` | `read` extrae bytes crudos directo del kernel; las de librería permiten parsear texto o tipos de datos. |
+| **Escribir** | `write()` | `fwrite()`, `fputs()`, `fprintf()` | `echo "..." >`, `tee` | `write` envía bloques de bytes crudos; `fprintf` permite formatear cadenas dinámicamente. |
+| **Borrar Archivo** | `unlink()` | `remove()` | `rm` | `remove()` es el estándar de C, el cual en sistemas POSIX hace una llamada directa a `unlink()`. |
+| **Metadatos / Info** | `stat()` | *No hay equivalente estándar* | `stat`, `ls -l` | El estándar de C básico no lee inodos; se requiere usar la API POSIX. |
+| **Directorios** | `mkdir()`, `rmdir()` | *No hay equivalente estándar* | `mkdir`, `rmdir` | La librería estándar de C pura no gestiona carpetas, se delega al estándar POSIX del OS. |
 
 ---
 
