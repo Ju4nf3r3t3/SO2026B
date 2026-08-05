@@ -89,6 +89,7 @@ int cmd_p_monitor(int argc, char **argv); /* Syscalls: getrusage */
 
 /* --- Categoría: Utilidades (cat_util.c) --- */
 int cmd_saludar(int argc, char **argv);   /* Syscalls: getuid */
+int cmd_despedir(int argc, char **argv);  /* Syscalls: getuid */
 int cmd_hora(int argc, char **argv);      /* Syscalls: time */
 int cmd_fecha(int argc, char **argv);     /* Syscalls: time */
 
