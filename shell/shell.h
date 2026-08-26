@@ -93,4 +93,7 @@ int cmd_despedir(int argc, char **argv);  /* Syscalls: getuid */
 int cmd_hora(int argc, char **argv);      /* Syscalls: time */
 int cmd_fecha(int argc, char **argv);     /* Syscalls: time */
 
+/* --- Categoría: Editor (editor.c) --- */
+int cmd_edit(int argc, char **argv); /* Syscalls: open, read, write, lseek, ftruncate, close */
+
 #endif /* SHELL_H */
