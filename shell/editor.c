@@ -90,7 +90,7 @@ static int checked_close(int fd) {
 static int find_line(int fd, int n, off_t *start, off_t *end) {
     if (n < 1) return -1;
 
-    checked_lseek(fd, 0, SEEK_SET);
+    if (checked_lseek(fd, 0, SEEK_SET) == -1) return -1;
 
     char c;
     int current_line = 1;
@@ -140,7 +140,7 @@ static void editor_open(const char *filename) {
 }
 
 static void editor_print_all(void) {
-    checked_lseek(g_fd, 0, SEEK_SET);
+    if (checked_lseek(g_fd, 0, SEEK_SET) == -1) return;
     char buffer[512];
     ssize_t n;
     while ((n = checked_read(g_fd, buffer, sizeof(buffer))) > 0) {
@@ -154,19 +154,35 @@ static void editor_print_line(int n) {
         printf(COLOR_ERROR "La línea %d no existe.\n" COLOR_RESET, n);
         return;
     }
-    checked_lseek(g_fd, start, SEEK_SET);
+    if (checked_lseek(g_fd, start, SEEK_SET) == -1) return;
     off_t len = end - start;
     char *buf = malloc((size_t)len);
-    if (checked_read(g_fd, buf, (size_t)len) > 0) {
-        checked_write(STDOUT_FILENO, buf, (size_t)len);
+    if (buf == NULL) {
+        perror("malloc");
+        return;
+    }
+    ssize_t r = checked_read(g_fd, buf, (size_t)len);
+    if (r > 0) {
+        checked_write(STDOUT_FILENO, buf, (size_t)r);
     }
     free(buf);
 }
 
 static void editor_append(const char *text) {
-    checked_lseek(g_fd, 0, SEEK_END);
-    checked_write(g_fd, text, strlen(text));
-    checked_write(g_fd, "\n", 1);
+    off_t size = checked_lseek(g_fd, 0, SEEK_END);
+    if (size == -1) return;
+
+    /* Si el archivo no termina en '\n' (p. ej. creado con d_create), se agrega
+     * uno antes para que el texto quede como una línea nueva y no pegado a la última. */
+    if (size > 0) {
+        char last;
+        if (checked_lseek(g_fd, -1, SEEK_END) == -1) return;
+        if (checked_read(g_fd, &last, 1) != 1) return;
+        if (last != '\n' && checked_write(g_fd, "\n", 1) != 1) return;
+    }
+
+    if (checked_write(g_fd, text, strlen(text)) == -1) return;
+    if (checked_write(g_fd, "\n", 1) == -1) return;
     printf(COLOR_RESULT "Línea añadida.\n" COLOR_RESET);
 }
 
@@ -178,18 +194,28 @@ static void editor_delete(int n) {
     }
 
     off_t file_size = checked_lseek(g_fd, 0, SEEK_END);
+    if (file_size == -1) return;
     off_t rest_len = file_size - end;
 
+    /* Si alguna syscall falla se aborta antes de truncar, para no dañar el archivo. */
     if (rest_len > 0) {
         char *buf = malloc((size_t)rest_len);
-        checked_lseek(g_fd, end, SEEK_SET);
-        checked_read(g_fd, buf, (size_t)rest_len);
-        checked_lseek(g_fd, start, SEEK_SET);
-        checked_write(g_fd, buf, (size_t)rest_len);
+        if (buf == NULL) {
+            perror("malloc");
+            return;
+        }
+        if (checked_lseek(g_fd, end, SEEK_SET) == -1 ||
+            checked_read(g_fd, buf, (size_t)rest_len) != rest_len ||
+            checked_lseek(g_fd, start, SEEK_SET) == -1 ||
+            checked_write(g_fd, buf, (size_t)rest_len) != rest_len) {
+            free(buf);
+            printf(COLOR_ERROR "No se pudo borrar la línea %d.\n" COLOR_RESET, n);
+            return;
+        }
         free(buf);
     }
 
-    checked_ftruncate(g_fd, start + rest_len);
+    if (checked_ftruncate(g_fd, start + rest_len) == -1) return;
     printf(COLOR_RESULT "Línea %d eliminada.\n" COLOR_RESET, n);
 }
 
@@ -249,10 +275,6 @@ int cmd_edit(int argc, char **argv) {
                 editor_delete(atoi(rest));
             }
         } else if (strcmp(cmd, "q") == 0) {
-            if (g_fd != -1) {
-                checked_close(g_fd);
-                g_fd = -1;
-            }
             printf(COLOR_INFO "Saliendo del editor.\n" COLOR_RESET);
             break;
         } else {
@@ -260,5 +282,10 @@ int cmd_edit(int argc, char **argv) {
         }
     }
 
+    /* Se cierra el archivo tanto al salir con 'q' como con Ctrl+D (EOF). */
+    if (g_fd != -1) {
+        checked_close(g_fd);
+        g_fd = -1;
+    }
     return 0;
 }

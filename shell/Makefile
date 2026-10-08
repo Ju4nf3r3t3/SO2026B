@@ -14,6 +14,6 @@ $(ARCHSALIDA): $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(ARCHSALIDA) $(OBJS)
 
 .PHONY: all clean
