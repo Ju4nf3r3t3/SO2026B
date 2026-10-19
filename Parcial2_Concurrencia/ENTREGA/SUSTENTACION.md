@@ -1,6 +1,7 @@
 # Parcial 2 — Compresor Huffman concurrente integrado al editor
 
-**Curso:** Sistemas Operativos (EAFIT) · **Alternativa 1**
+**Autor:** Juan Fernando Romero · **Asignatura:** Sistemas Operativos — SO2026B (EAFIT)  
+**Alternativa:** 1 — Compresor Huffman concurrente · **Tamaño de equipo:** 1 (individual)
 
 El editor del Parcial 1 (`edit` dentro del shell `eafitOS`) ganó cuatro comandos: `z` (comprimir), `x` (descomprimir), `s` (progreso) y `w` (esperar). La compresión corre en segundo plano con un pool de 4 hilos, y el editor sigue respondiendo mientras tanto.
 
@@ -60,6 +61,7 @@ Compilar y probar: `cd shell && make && ./test_parcial2.sh` (`make run` abre el 
 **Sin espera activa.** Todas las esperas duermen al hilo: el escritor usa `pthread_cond_wait` sobre `cond_listo`, `z` espera el arranque con `pthread_cond_wait` sobre `cond_arranque`, y para esperar el final se usa `pthread_join` (en `w`, en `q` y entre fases). No hay ningún `while(!listo);` ni `usleep`. Cada `cond_wait` está dentro de un `while` que revisa la condición, por si hay *despertares espurios*.
 
 **Sin interbloqueos (deadlock).**
+
 - Ningún hilo tiene dos mutex a la vez: `c->mutex` y `g_estado.mutex` nunca se anidan, así que no puede haber espera circular.
 - El único lock que se sostiene mucho tiempo es el rwlock de lectura del hilo de compresión. El editor nunca se queda esperando ese lock: `a`/`d` usan `pthread_rwlock_trywrlock`, que falla de inmediato con `EBUSY`, y `p` pide lectura, que es compatible con otro lector.
 - Si un trabajador falla, `marcar_error` hace `broadcast`. El escritor revisa `error` en la misma condición y deja de esperar un bloque que ya nadie va a producir. Por la misma razón, si no se pudo crear ningún trabajador se marca error.

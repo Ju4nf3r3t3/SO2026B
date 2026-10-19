@@ -1,11 +1,12 @@
 # Guion del video — Parcial 2 (≈ 9 min)
 
 Preparación (antes de grabar): terminal grande, fuente legible, ubicado en `Parcial2_Concurrencia/ENTREGA/shell`.
+Al terminar, guardar el video como `ENTREGA/video_sustentacion.mp4` (el `.gitignore` excluye los `.mp4`, así que no se sube a GitHub).
 
 ```bash
 make clean && make
 # ~1,5 GB: el compresor va a ~270 MB/s con 4 hilos, así que con 10 MB terminaría antes de
-# alcanzar a teclear. Con 1,5 GB la compresión dura ~6 s y la descompresión ~12 s (en esta VM).
+# alcanzar a teclear. Con 1,5 GB la compresión y la descompresión duran ~10 s cada una (en esta VM).
 # Ocupa ~5 GB en disco entre original, .huf y .out: borrarlos al terminar.
 seq 1 25000000 | sed 's/$/: El veloz murcielago hindu comia feliz cardillo y kiwi./' > grande.txt
 ```
@@ -14,7 +15,7 @@ seq 1 25000000 | sed 's/$/: El veloz murcielago hindu comia feliz cardillo y kiw
 
 ## 0. Presentación (0:00 – 0:45)
 
-- Integrantes, alternativa elegida (Huffman concurrente integrado al editor del Parcial 1).
+- "Soy Juan Fernando Romero, Sistemas Operativos SO2026B. Parcial 2, individual, alternativa 1: compresor Huffman concurrente integrado al editor del Parcial 1."
 - Qué se va a mostrar: diseño, demo en vivo, pruebas de integridad, valgrind/helgrind.
 
 ## 1. Diseño en una diapositiva (0:45 – 2:30)
