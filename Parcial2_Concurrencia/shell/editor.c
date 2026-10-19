@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
+#include <signal.h>
+#include "compresor.h"
 
 /**
  * ====================================================================================
@@ -19,7 +21,15 @@
  *   d <n>         Borra la línea n.
  *   q             Cierra el archivo y sale del editor (vuelve al shell).
  *
+ * Comandos del Parcial 2 (compresión Huffman concurrente en segundo plano):
+ *   z             Comprime el archivo abierto a <archivo>.huf sin bloquear el editor.
+ *   x <arch.huf>  Descomprime en segundo plano a <nombre>.out.
+ *   s             Muestra el progreso del trabajo.
+ *   w             Espera a que termine el trabajo (pthread_join) y muestra el resultado.
+ *
  * Estado: un único archivo abierto a la vez (nivel 1, sin multi-buffer).
+ * Mientras se comprime, 'p' puede leer (lock de lectura), pero 'a' y 'd' necesitan el
+ * lock de escritura y, si está ocupado, avisan en vez de bloquear el editor.
  */
 
 static int g_fd = -1;
@@ -219,6 +229,25 @@ static void editor_delete(int n) {
     printf(COLOR_RESULT "Línea %d eliminada.\n" COLOR_RESET, n);
 }
 
+/* ---- Integración con el compresor (Parcial 2) ---- */
+
+/* Mensaje cuando 'a' o 'd' no consiguen el lock de escritura. */
+static void archivo_ocupado(void) {
+    char tipo;
+    int pct;
+    compresor_activo(&tipo, &pct);
+    printf(COLOR_ERROR "Archivo ocupado: compresión en curso (%d%%)\n" COLOR_RESET, pct);
+}
+
+/* Manejador de Ctrl+C dentro del editor. Solo lo ejecuta el hilo principal, porque los
+ * hilos del compresor tienen SIGINT bloqueado. No termina el proceso para no dejar
+ * hilos a medio escribir un .huf; se sale con 'q'. Solo usa write (async-signal-safe). */
+static void manejador_sigint(int sig) {
+    (void)sig;
+    const char msg[] = "\n[Ctrl+C] Usa 'q' para salir del editor (espera el trabajo en curso).\n";
+    write(STDOUT_FILENO, msg, sizeof(msg) - 1);
+}
+
 /* ---- REPL del editor ---- */
 
 int cmd_edit(int argc, char **argv) {
@@ -226,9 +255,26 @@ int cmd_edit(int argc, char **argv) {
         editor_open(argv[1]);
     }
 
+    /* SA_RESTART: fgets no se interrumpe con EINTR al llegar la señal. */
+    struct sigaction sa, sa_anterior;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = manejador_sigint;
+    sa.sa_flags = SA_RESTART;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT, &sa, &sa_anterior);
+
     char line[2048];
     while (1) {
-        printf(COLOR_PROMPT "edit> " COLOR_RESET);
+        /* Si el trabajo de fondo terminó, se avisa una vez (y se hace join). */
+        compresor_revisar_fin();
+
+        char tipo;
+        int pct;
+        if (compresor_activo(&tipo, &pct)) {
+            printf(COLOR_PROMPT "edit [%c %d%%]> " COLOR_RESET, tipo, pct);
+        } else {
+            printf(COLOR_PROMPT "edit> " COLOR_RESET);
+        }
         fflush(stdout);
 
         if (fgets(line, sizeof(line), stdin) == NULL) {
@@ -247,40 +293,77 @@ int cmd_edit(int argc, char **argv) {
         if (strcmp(cmd, "o") == 0) {
             if (rest == NULL) {
                 printf(COLOR_ERROR "Uso: o <archivo>\n" COLOR_RESET);
+            } else if (compresor_activo(NULL, NULL)) {
+                /* Un solo archivo y un solo trabajo: no se cambia de archivo a mitad. */
+                printf(COLOR_ERROR "Hay un trabajo en curso; espera con 'w' antes de abrir otro archivo.\n" COLOR_RESET);
             } else {
                 editor_open(rest);
             }
         } else if (strcmp(cmd, "p") == 0) {
             if (g_fd == -1) {
                 printf(COLOR_ERROR "No hay ningún archivo abierto. Usa: o <archivo>\n" COLOR_RESET);
-            } else if (rest == NULL) {
-                editor_print_all();
             } else {
-                editor_print_line(atoi(rest));
+                /* Lectura: puede ir en paralelo con la compresión (también es lectora). */
+                pthread_rwlock_rdlock(&g_archivo_lock);
+                if (rest == NULL) {
+                    editor_print_all();
+                } else {
+                    editor_print_line(atoi(rest));
+                }
+                pthread_rwlock_unlock(&g_archivo_lock);
             }
         } else if (strcmp(cmd, "a") == 0) {
             if (g_fd == -1) {
                 printf(COLOR_ERROR "No hay ningún archivo abierto. Usa: o <archivo>\n" COLOR_RESET);
             } else if (rest == NULL) {
                 printf(COLOR_ERROR "Uso: a <texto>\n" COLOR_RESET);
+            } else if (pthread_rwlock_trywrlock(&g_archivo_lock) != 0) {
+                archivo_ocupado();   /* trywrlock: no se bloquea el editor */
             } else {
                 editor_append(rest);
+                pthread_rwlock_unlock(&g_archivo_lock);
             }
         } else if (strcmp(cmd, "d") == 0) {
             if (g_fd == -1) {
                 printf(COLOR_ERROR "No hay ningún archivo abierto. Usa: o <archivo>\n" COLOR_RESET);
             } else if (rest == NULL) {
                 printf(COLOR_ERROR "Uso: d <n>\n" COLOR_RESET);
+            } else if (pthread_rwlock_trywrlock(&g_archivo_lock) != 0) {
+                archivo_ocupado();
             } else {
                 editor_delete(atoi(rest));
+                pthread_rwlock_unlock(&g_archivo_lock);
             }
+        } else if (strcmp(cmd, "z") == 0) {
+            if (g_fd == -1) {
+                printf(COLOR_ERROR "No hay ningún archivo abierto. Usa: o <archivo>\n" COLOR_RESET);
+            } else {
+                compresor_iniciar('z', g_filename);
+            }
+        } else if (strcmp(cmd, "x") == 0) {
+            if (rest == NULL) {
+                printf(COLOR_ERROR "Uso: x <archivo.huf>\n" COLOR_RESET);
+            } else {
+                compresor_iniciar('x', rest);
+            }
+        } else if (strcmp(cmd, "s") == 0) {
+            compresor_mostrar_progreso();
+        } else if (strcmp(cmd, "w") == 0) {
+            compresor_esperar();
         } else if (strcmp(cmd, "q") == 0) {
             printf(COLOR_INFO "Saliendo del editor.\n" COLOR_RESET);
             break;
         } else {
-            printf(COLOR_ERROR "Comando de editor no reconocido: '%s'. Usa o/p/a/d/q.\n" COLOR_RESET, cmd);
+            printf(COLOR_ERROR "Comando de editor no reconocido: '%s'. Usa o/p/a/d/z/x/s/w/q.\n" COLOR_RESET, cmd);
         }
     }
+
+    /* No se sale dejando hilos vivos: si hay un trabajo, se espera con pthread_join. */
+    compresor_revisar_fin();
+    if (compresor_activo(NULL, NULL)) {
+        compresor_esperar();
+    }
+    sigaction(SIGINT, &sa_anterior, NULL);
 
     /* Se cierra el archivo tanto al salir con 'q' como con Ctrl+D (EOF). */
     if (g_fd != -1) {

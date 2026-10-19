@@ -131,8 +131,8 @@ Command commands[] = {
     {
         "edit", "editor",
         "edit [archivo]",
-        "Abre un editor de texto interactivo (REPL) operado con syscalls POSIX de bajo nivel.",
-        "open(2), read(2), write(2), lseek(2), ftruncate(2), close(2)",
+        "Editor de texto interactivo (REPL) con syscalls POSIX; comprime/descomprime con Huffman concurrente en segundo plano (z/x/s/w).",
+        "open(2), read(2), pread(2), write(2), lseek(2), ftruncate(2), fstat(2), close(2) + pthreads",
         cmd_edit
     }
 };

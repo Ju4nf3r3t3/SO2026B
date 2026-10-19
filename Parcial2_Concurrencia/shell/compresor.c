@@ -42,7 +42,7 @@ static struct {
     char tipo;                      /* 'z' (comprimir) o 'x' (descomprimir) */
     int hechos, total;              /* Progreso en bloques */
     int fallo;                      /* 1 si el trabajo terminó con error */
-    char mensaje[2 * PATH_MAX];     /* Resultado final o error, lo imprime el editor */
+    char mensaje[2 * PATH_MAX + 256]; /* Resultado final o error, lo imprime el editor */
 } g_estado = { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0, 0, ' ', 0, 0, 0, "" };
 
 /* Solo los usa el hilo principal, por eso no necesitan mutex. */
