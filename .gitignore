@@ -1,5 +1,18 @@
-shell/*.o
+# Compilados
+*.o
+sys_shell
+eafitOS
 shell/sys_shell
-Banderas_CLI/*.o
 Banderas_CLI/cli_parser
+
+# Notas personales (no se suben)
 PARA_MI/
+Parcial1_EditorTexto/PARA_MI/
+
+# Archivos pesados (>100MB no caben en GitHub): video y zip de entrega
+*.mp4
+*.zip
+
+# macOS
+.DS_Store
+__MACOSX/
