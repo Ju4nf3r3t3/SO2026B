@@ -16,3 +16,10 @@ Parcial1_EditorTexto/PARA_MI/
 # macOS
 .DS_Store
 __MACOSX/
+
+# Parcial 2: archivos generados por las pruebas
+Parcial2_Concurrencia/shell/prueba_*
+Parcial2_Concurrencia/shell/demo1.txt
+Parcial2_Concurrencia/shell/demo2.txt
+*.huf
+*.out

@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 
 echo "=== Compilando (make all) ==="
 make clean
-make all < /dev/null   # 'all' compila y también corre el binario una vez; con stdin vacio termina de inmediato
+make all
 
 echo
 echo "=== Caso 1: flujo normal ==="
