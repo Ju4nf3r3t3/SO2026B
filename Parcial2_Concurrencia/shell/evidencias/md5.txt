@@ -1,0 +1,14 @@
+7fc56270e7a70fa81a5935b72eacbe29  prueba_1byte.txt
+7fc56270e7a70fa81a5935b72eacbe29  prueba_1byte.txt.out
+17cfbd7d9683ae176d777479cf12f947  prueba_binario.bin
+17cfbd7d9683ae176d777479cf12f947  prueba_binario.bin.out
+d79fae1ed6132bc46614ec46d9446990  prueba_grande.txt
+d79fae1ed6132bc46614ec46d9446990  prueba_grande.txt.out
+9ee0f33e1a81d5ce377a64263c9c4e4f  prueba_mediano.txt
+9ee0f33e1a81d5ce377a64263c9c4e4f  prueba_mediano.txt.out
+49b6e203695e8d05c491c74175ff52d7  prueba_no_multiplo.txt
+49b6e203695e8d05c491c74175ff52d7  prueba_no_multiplo.txt.out
+561b1994f6baacd6e5eaf4baaa12849f  prueba_repetido.txt
+561b1994f6baacd6e5eaf4baaa12849f  prueba_repetido.txt.out
+d41d8cd98f00b204e9800998ecf8427e  prueba_vacio.txt
+d41d8cd98f00b204e9800998ecf8427e  prueba_vacio.txt.out
