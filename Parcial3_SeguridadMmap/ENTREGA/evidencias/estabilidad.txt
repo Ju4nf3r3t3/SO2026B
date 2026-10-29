@@ -1,0 +1,26 @@
+== 20 ciclos insmod/rmmod ==
+ok
+== carga con archivo inexistente ==
+insmod: ERROR: could not insert module mmap_guard.ko: Invalid parameters
+[  382.605055] [mmap_guard] no se encontró el archivo '/no/existe' (error -2)
+== estrés: 8 procesos x 100000 mmap concurrentes sobre el archivo protegido + 4 atacantes ==
+mmap+munmap: 100000 iteraciones, 4366.8 ns por par
+mmap+munmap: 100000 iteraciones, 4426.4 ns por par
+mmap+munmap: 100000 iteraciones, 4404.4 ns por par
+mmap+munmap: 100000 iteraciones, 5083.4 ns por par
+mmap+munmap: 100000 iteraciones, 5157.0 ns por par
+mmap+munmap: 100000 iteraciones, 5300.0 ns por par
+mmap+munmap: 100000 iteraciones, 5348.4 ns por par
+mmap+munmap: 100000 iteraciones, 5345.6 ns por par
+archivo protegido        : /srv/mmap_guard/confidencial.txt (inodo 524369)
+uid autorizado           : 502
+mmap revisados           : 800800
+  permitidos             : 800000
+  denegados R1 usuario   : 800
+  denegados R2 exec      : 0
+  denegados R3 escritura : 0
+mprotect revisados       : 0
+  denegados R4           : 0
+llamadas no vigiladas    : 0 (nmissed de los kretprobes)
+== errores del kernel (oops/BUG/WARNING) en dmesg ==
+0

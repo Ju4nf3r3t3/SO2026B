@@ -1,0 +1,13 @@
+make -C /lib/modules/6.8.0-134-generic/build M=/home/lima.guest/codigo clean
+make[1]: Entering directory '/usr/src/linux-headers-6.8.0-134-generic'
+make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-134-generic'
+rm -f poc_mmap bench_mmap
+make -C /lib/modules/6.8.0-134-generic/build M=/home/lima.guest/codigo CC=aarch64-linux-gnu-gcc-13 CONFIG_DEBUG_INFO_BTF_MODULES= modules
+make[1]: Entering directory '/usr/src/linux-headers-6.8.0-134-generic'
+  CC [M]  /home/lima.guest/codigo/mmap_guard.o
+  MODPOST /home/lima.guest/codigo/Module.symvers
+  CC [M]  /home/lima.guest/codigo/mmap_guard.mod.o
+  LD [M]  /home/lima.guest/codigo/mmap_guard.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.8.0-134-generic'
+cc -Wall -Wextra -O2 -pthread -o poc_mmap poc_mmap.c
+cc -Wall -Wextra -O2 -o bench_mmap bench_mmap.c

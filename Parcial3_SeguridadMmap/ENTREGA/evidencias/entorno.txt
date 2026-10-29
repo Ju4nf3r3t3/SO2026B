@@ -1,0 +1,10 @@
+Fecha: Wed Oct 28 22:23:53 -05 2026
+Description:	Ubuntu 24.04.4 LTS
+Kernel: 6.8.0-134-generic (aarch64)
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+perf: perf version 6.8.12
+strace: strace -- version 6.8
+Secure Boot: SecureBoot disabled
+Platform is in Setup Mode
+CPUs: 4   RAM: 3.8Gi
+VM: Lima (Apple Virtualization.framework) sobre macOS, Apple Silicon

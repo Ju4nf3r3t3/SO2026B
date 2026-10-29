@@ -1,0 +1,100 @@
+=== Preparación ===
+Archivo protegido : /srv/mmap_guard/confidencial.txt  (permisos -rw-r--r--, dueño lima uid=502)
+Usuario atacante  : atacante uid=1000
+Kernel            : 6.8.0-134-generic (aarch64)
+
+=== FASE 1: SIN el módulo (comportamiento por defecto de Linux) ===
+[caso 1] lima -> leer
+  -> PERMITIDO: mmap de lectura en 0xe01371018000. Primera línea: DATOS CONFIDENCIALES: nomina 2026 - no modificar
+[caso 2] atacante -> leer
+  -> PERMITIDO: mmap de lectura en 0xfb70bf366000. Primera línea: DATOS CONFIDENCIALES: nomina 2026 - no modificar
+[caso 3] lima -> escribir_compartido
+  -> PERMITIDO: se escribió 'HACKEADO' en el archivo a través de la memoria
+  !! el archivo en disco fue MODIFICADO: HACKEADONFIDENCIALES: nomina 2026 - no m
+[caso 4] lima -> escribir_privado
+  -> PERMITIDO (COW): la copia privada en memoria ahora dice 'HACKEADO'; el archivo en disco no cambia
+[caso 5] lima -> ejecutar
+  -> PERMITIDO: el archivo quedó mapeado como CÓDIGO ejecutable en 0xe5c8cacb5000
+[caso 6] lima -> mprotect_escritura
+  -> paso 1: mmap(PROT_READ) permitido en 0xf0a8bc663000
+  -> PERMITIDO: mprotect subió el mapeo a escritura y se escribió 'HACKEADO'
+  !! el archivo en disco fue MODIFICADO: HACKEADONFIDENCIALES: nomina 2026 - no m
+[caso 7] lima -> mprotect_ejecucion
+  -> paso 1: mmap(PROT_READ) permitido en 0xfb69d25e8000
+  -> PERMITIDO: mprotect volvió el mapeo ejecutable
+[caso 8] atacante -> carrera
+  -> mapeo privado de solo lectura en 0xe5b26a7ca000; corriendo la carrera 2 s...
+  -> carrera ejecutada: 2866441 madvise(MADV_DONTNEED) y 1907162 escrituras por /proc/self/mem
+  -> RESISTIÓ: el archivo sigue empezando por 'DATOS CO' (la escritura solo tocó la copia COW)
+[caso 9] lima -> carrera
+  -> mapeo privado de solo lectura en 0xfecfb0d28000; corriendo la carrera 2 s...
+  -> carrera ejecutada: 2864217 madvise(MADV_DONTNEED) y 1957832 escrituras por /proc/self/mem
+  -> RESISTIÓ: el archivo sigue empezando por 'DATOS CO' (la escritura solo tocó la copia COW)
+
+=== FASE 2: CON el módulo mmap_guard ===
+insmod mmap_guard.ko archivo=/srv/mmap_guard/confidencial.txt uid_autorizado=502
+[caso 1] lima -> leer   (esperado: permitido, uso legítimo)
+  -> PERMITIDO: mmap de lectura en 0xf49ad5152000. Primera línea: DATOS CONFIDENCIALES: nomina 2026 - no modificar
+[caso 2] atacante -> leer   (esperado: negado, R1 usuario no autorizado)
+  -> NEGADO: mmap(PROT_READ, MAP_SHARED) falló con Permission denied (errno=13)
+[caso 3] lima -> escribir_compartido   (esperado: negado, R3 escritura MAP_SHARED)
+  -> NEGADO: mmap(PROT_WRITE, MAP_SHARED) falló con Permission denied (errno=13)
+[caso 4] lima -> escribir_privado   (esperado: permitido, COW privado (no toca el disco))
+  -> PERMITIDO (COW): la copia privada en memoria ahora dice 'HACKEADO'; el archivo en disco no cambia
+[caso 5] lima -> ejecutar   (esperado: negado, R2 PROT_EXEC)
+  -> NEGADO: mmap(PROT_EXEC) falló con Permission denied (errno=13)
+[caso 6] lima -> mprotect_escritura   (esperado: negado, R4 mprotect a escritura)
+  -> paso 1: mmap(PROT_READ) permitido en 0xe23849886000
+  -> NEGADO: mprotect(+PROT_WRITE) falló con Permission denied (errno=13)
+[caso 7] lima -> mprotect_ejecucion   (esperado: negado, R4 mprotect a ejecución)
+  -> paso 1: mmap(PROT_READ) permitido en 0xfa2a61ed9000
+  -> NEGADO: mprotect(+PROT_EXEC) falló con Permission denied (errno=13)
+[caso 8] atacante -> carrera   (esperado: ataque fallido, R1 + ataque Dirty COW)
+  -> NEGADO: mmap(PROT_READ, MAP_PRIVATE) del ataque falló con Permission denied (errno=13)
+[caso 9] lima -> carrera   (esperado: ataque fallido, carrera sobre mapeo privado)
+  -> mapeo privado de solo lectura en 0xfc6e85ba6000; corriendo la carrera 2 s...
+  -> carrera ejecutada: 2924992 madvise(MADV_DONTNEED) y 1871531 escrituras por /proc/self/mem
+  -> RESISTIÓ: el archivo sigue empezando por 'DATOS CO' (la escritura solo tocó la copia COW)
+
+=== Auditoría del kernel: /proc/mmap_guard ===
+archivo protegido        : /srv/mmap_guard/confidencial.txt (inodo 524369)
+uid autorizado           : 502
+mmap revisados           : 9
+  permitidos             : 5
+  denegados R1 usuario   : 2
+  denegados R2 exec      : 1
+  denegados R3 escritura : 1
+mprotect revisados       : 2
+  denegados R4           : 2
+llamadas no vigiladas    : 0 (nmissed de los kretprobes)
+
+=== Auditoría del kernel: dmesg ===
+[  400.776792] [mmap_guard] cargado: protegiendo /srv/mmap_guard/confidencial.txt (inodo 524369), uid autorizado 502
+[  400.779507] [mmap_guard] permitido mmap: pid=11058 comm=poc_mmap uid=502 prot=R-- MAP_SHARED
+[  400.782945] [mmap_guard] DENEGADO mmap (R1 usuario no autorizado): pid=11064 comm=poc_mmap uid=1000 archivo=confidencial.txt
+[  400.786060] [mmap_guard] DENEGADO mmap (R3 escritura MAP_SHARED): pid=11070 comm=poc_mmap uid=502 archivo=confidencial.txt
+[  400.789188] [mmap_guard] permitido mmap: pid=11076 comm=poc_mmap uid=502 prot=RW- MAP_PRIVATE(COW)
+[  400.792144] [mmap_guard] DENEGADO mmap (R2 PROT_EXEC): pid=11082 comm=poc_mmap uid=502 archivo=confidencial.txt
+[  400.795318] [mmap_guard] permitido mmap: pid=11088 comm=poc_mmap uid=502 prot=R-- MAP_SHARED
+[  400.795330] [mmap_guard] DENEGADO mprotect (R4 -> PROT_WRITE en MAP_SHARED): pid=11088 comm=poc_mmap uid=502 archivo=confidencial.txt
+[  400.798734] [mmap_guard] permitido mmap: pid=11094 comm=poc_mmap uid=502 prot=R-- MAP_PRIVATE(COW)
+[  400.798746] [mmap_guard] DENEGADO mprotect (R4 -> PROT_EXEC): pid=11094 comm=poc_mmap uid=502 archivo=confidencial.txt
+[  400.802430] [mmap_guard] DENEGADO mmap (R1 usuario no autorizado): pid=11100 comm=poc_mmap uid=1000 archivo=confidencial.txt
+[  400.805545] [mmap_guard] permitido mmap: pid=11106 comm=poc_mmap uid=502 prot=R-- MAP_PRIVATE(COW)
+
+(módulo descargado con rmmod)
+
+=== RESUMEN ===
+#    usuario    modo                 | SIN módulo                          | CON módulo                          | resultado
+1    lima       leer                 | permitido, archivo íntegro: si      | permitido, archivo íntegro: si      | PASS
+2    atacante   leer                 | permitido, archivo íntegro: si      | negado, archivo íntegro: si         | PASS
+3    lima       escribir_compartido  | permitido, archivo íntegro: NO      | negado, archivo íntegro: si         | PASS
+4    lima       escribir_privado     | permitido, archivo íntegro: si      | permitido, archivo íntegro: si      | PASS
+5    lima       ejecutar             | permitido, archivo íntegro: si      | negado, archivo íntegro: si         | PASS
+6    lima       mprotect_escritura   | permitido, archivo íntegro: NO      | negado, archivo íntegro: si         | PASS
+7    lima       mprotect_ejecucion   | permitido, archivo íntegro: si      | negado, archivo íntegro: si         | PASS
+8    atacante   carrera              | ataque fallido, archivo íntegro: si | ataque fallido, archivo íntegro: si | PASS
+9    lima       carrera              | ataque fallido, archivo íntegro: si | ataque fallido, archivo íntegro: si | PASS
+
+Casos correctos: 9/9
+=== TODAS LAS PRUEBAS PASARON ===

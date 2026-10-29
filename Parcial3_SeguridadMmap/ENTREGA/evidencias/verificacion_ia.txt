@@ -1,0 +1,41 @@
+Kernel: 6.8.0-134-generic (aarch64)   headers: /lib/modules/6.8.0-134-generic/build
+
+[1] 'Usa kallsyms_lookup_name() para encontrar sys_call_table y engancharla'
+  kallsyms_lookup_name: NO exportado -> un módulo no puede usarlo
+  sys_call_table: NO exportado -> un módulo no puede usarlo
+
+[2] 'Registra un LSM desde el módulo con security_add_hooks()'
+  security_add_hooks: NO exportado -> un módulo no puede usarlo
+
+[3] 'Usa el hook LSM file_mmap' (nombre de kernels 2.6/3.x)
+  file_mmap en lsm_hook_defs.h: 0
+  mmap_file en lsm_hook_defs.h: 1
+  LSM_HOOK(int, 0, mmap_file, struct file *file, unsigned long reqprot,
+  	 unsigned long prot, unsigned long flags)
+
+[4] 'Quita VM_MAYWRITE con vma->vm_flags &= ~VM_MAYWRITE' (no compila desde 6.3)
+  compila: NO -> 5:48: error: assignment of read-only member ‘vm_flags’
+  alternativa correcta en 6.3+: vm_flags_clear(vma, VM_MAYWRITE)
+  compila: SÍ
+
+[5] 'Lee los argumentos del kprobe con regs->di, regs->si'
+  compila: NO -> 5:46: error: ‘struct pt_regs’ has no member named ‘di’
+  (regs->di solo existe en x86_64: en arm64 no compila. No es portable.)
+  alternativa portable: regs_get_kernel_argument(regs, n)
+  compila: SÍ
+
+[6] 'Desactiva la protección de escritura con write_cr0(read_cr0() & ~0x10000)'
+  compila: NO -> 5:16: error: implicit declaration of function ‘write_cr0’; did you mean ‘write_vl’? [-Werror=implicit-function-declaration]
+  (en arm64 no existe CR0. En x86_64 compila, pero desde Linux 5.3 el kernel
+   'fija' el bit WP y lo vuelve a poner: 'CR0 WP bit went missing!?'. Y sin
+   bloquear interrupciones ni a las otras CPUs deja todo el kernel escribible.)
+
+[7] Símbolos que SÍ usa mmap_guard.c (todos deben estar exportados)
+  register_kretprobe: EXPORTADO (EXPORT_SYMBOL_GPL)
+  unregister_kretprobe: EXPORTADO (EXPORT_SYMBOL_GPL)
+  kern_path: EXPORTADO (EXPORT_SYMBOL)
+  path_put: EXPORTADO (EXPORT_SYMBOL)
+  proc_create_single_data: EXPORTADO (EXPORT_SYMBOL)
+  remove_proc_entry: EXPORTADO (EXPORT_SYMBOL)
+  from_kuid: EXPORTADO (EXPORT_SYMBOL)
+  security_mmap_file y security_file_mprotect en kallsyms (sondeables): 2

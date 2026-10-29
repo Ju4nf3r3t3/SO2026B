@@ -1,0 +1,66 @@
+=== Kernel 6.8.0-134-generic (aarch64), 4 CPUs ===
+
+=== SIN módulo ===
+  [mmap otro archivo   ] mmap+munmap: 200000 iteraciones, 777.0 ns por par
+  [mmap otro archivo   ] mmap+munmap: 200000 iteraciones, 775.4 ns por par
+  [mmap otro archivo   ] mmap+munmap: 200000 iteraciones, 793.3 ns por par
+  [mmap arch. protegido] mmap+munmap: 200000 iteraciones, 783.0 ns por par
+  [mmap arch. protegido] mmap+munmap: 200000 iteraciones, 770.8 ns por par
+  [mmap arch. protegido] mmap+munmap: 200000 iteraciones, 779.0 ns por par
+  [fallos 64 MB, frío  ] 16384 páginas tocadas, 1027 fallos (1 mayores), 14353.6 ns por fallo (suma=2089362)
+  [fallos 64 MB, frío  ] 16384 páginas tocadas, 1027 fallos (1 mayores), 14177.1 ns por fallo (suma=2089362)
+  [fallos 64 MB, frío  ] 16384 páginas tocadas, 1027 fallos (1 mayores), 12679.8 ns por fallo (suma=2089362)
+  [fallos 64 MB, caché ] 16384 páginas tocadas, 1026 fallos (0 mayores), 1003.2 ns por fallo (suma=2089362)
+  [fallos 64 MB, caché ] 16384 páginas tocadas, 1026 fallos (0 mayores), 867.0 ns por fallo (suma=2089362)
+  [fallos 64 MB, caché ] 16384 páginas tocadas, 1026 fallos (0 mayores), 849.9 ns por fallo (suma=2089362)
+  perf stat (64 MB, en caché):
+    1075      page-faults                      #  586.018 K/sec                     
+    0      major-faults                     #    0.000 /sec                      
+    1.83 msec task-clock                       #    0.944 CPUs utilized             
+    0.001943177 seconds time elapsed
+
+=== CON módulo (insmod mmap_guard.ko) ===
+  [mmap otro archivo   ] mmap+munmap: 200000 iteraciones, 910.1 ns por par
+  [mmap otro archivo   ] mmap+munmap: 200000 iteraciones, 885.8 ns por par
+  [mmap otro archivo   ] mmap+munmap: 200000 iteraciones, 899.0 ns por par
+  [mmap arch. protegido] mmap+munmap: 200000 iteraciones, 948.1 ns por par
+  [mmap arch. protegido] mmap+munmap: 200000 iteraciones, 940.2 ns por par
+  [mmap arch. protegido] mmap+munmap: 200000 iteraciones, 947.2 ns por par
+  [fallos 64 MB, frío  ] 16384 páginas tocadas, 1027 fallos (1 mayores), 13573.9 ns por fallo (suma=2089362)
+  [fallos 64 MB, frío  ] 16384 páginas tocadas, 1027 fallos (1 mayores), 13726.3 ns por fallo (suma=2089362)
+  [fallos 64 MB, frío  ] 16384 páginas tocadas, 1028 fallos (1 mayores), 12579.7 ns por fallo (suma=2089362)
+  [fallos 64 MB, caché ] 16384 páginas tocadas, 1026 fallos (0 mayores), 919.0 ns por fallo (suma=2089362)
+  [fallos 64 MB, caché ] 16384 páginas tocadas, 1026 fallos (0 mayores), 849.6 ns por fallo (suma=2089362)
+  [fallos 64 MB, caché ] 16384 páginas tocadas, 1026 fallos (0 mayores), 970.3 ns por fallo (suma=2089362)
+  perf stat (64 MB, en caché):
+    1074      page-faults                      #  628.285 K/sec                     
+    0      major-faults                     #    0.000 /sec                      
+    1.71 msec task-clock                       #    0.943 CPUs utilized             
+    0.001812423 seconds time elapsed
+
+=== kprobes registrados (/sys/kernel/debug/kprobes/list) ===
+ffffd14f453f9948  r  security_mmap_file+0x0    
+ffffd14f453f9b08  r  security_file_mprotect+0x0    
+
+=== strace -c: syscalls de 10000 mmap+munmap sobre el archivo protegido ===
+mmap+munmap: 10000 iteraciones, 56945.5 ns por par
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 54.54    0.038944           3     10006           mmap
+ 45.45    0.032452           3     10003           munmap
+  0.01    0.000007           2         3           close
+  0.00    0.000000           0         3           openat
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.071403           3     20015           total
+
+=== /proc/mmap_guard ===
+archivo protegido        : /srv/mmap_guard/confidencial.txt (inodo 524369)
+uid autorizado           : 502
+mmap revisados           : 610000
+  permitidos             : 610000
+  denegados R1 usuario   : 0
+  denegados R2 exec      : 0
+  denegados R3 escritura : 0
+mprotect revisados       : 0
+  denegados R4           : 0
+llamadas no vigiladas    : 0 (nmissed de los kretprobes)
