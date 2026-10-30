@@ -1,5 +1,7 @@
 # Instrucciones para Claude — Parcial 2 (Concurrencia y Sincronización)
 
+> **Estado: TERMINADO.** El código, la sustentación y el video ya están listos. La carpeta de entrega ahora se llama `ParcialListo/` (antes `ENTREGA/`). No modificar nada; lo de abajo queda como registro de cómo se hizo.
+
 Estás en una **VM Ubuntu Linux**. Tu tarea es implementar el Parcial 2, **Alternativa 1: Compresor Huffman concurrente integrado al editor**, compilarlo, probarlo y dejar lista la carpeta de entrega.
 
 ## Regla principal: sencillo, como el Parcial 1
